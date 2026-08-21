@@ -49,7 +49,22 @@ test('trang chủ hiển thị bảng xếp hạng và giá chiếm hạng 1', a
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'lên xu hướng' })).toBeVisible()
   await expect(page.getByText('Để chiếm hạng 1 ngay bây giờ')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Lên xu hướng ngay' })).toBeVisible()
+  // Khối hành động giờ là form có ô nhập link, không còn là Link tĩnh.
+  await expect(page.getByRole('button', { name: 'Lên xu hướng ngay' })).toBeVisible()
+  await expect(
+    page.getByPlaceholder('Dán link TikTok, Facebook, Instagram...'),
+  ).toBeVisible()
+})
+
+test('ô nhập link ở trang chủ chuyển sang /dat-bid với url điền sẵn', async ({ page }) => {
+  const url = 'https://tiktok.com/@aidohomepage'
+
+  await page.goto('/')
+  await page.getByPlaceholder('Dán link TikTok, Facebook, Instagram...').fill(url)
+  await page.getByRole('button', { name: 'Lên xu hướng ngay' }).click()
+
+  await expect(page).toHaveURL(`/dat-bid?url=${encodeURIComponent(url)}`)
+  await expect(page.getByRole('textbox').first()).toHaveValue(url)
 })
 
 test('đặt bid trọn vẹn tới trang mã QR', async ({ page }) => {
