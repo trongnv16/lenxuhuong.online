@@ -22,6 +22,16 @@ function required(name: string): string {
 }
 
 export function getServerEnv(): ServerEnv {
+  const minBidAmountStr = process.env.MIN_BID_AMOUNT
+  let minBidAmount = 1000
+
+  if (minBidAmountStr !== undefined) {
+    if (minBidAmountStr === '' || isNaN(Number(minBidAmountStr))) {
+      throw new Error(`Biến môi trường MIN_BID_AMOUNT phải là một số.`)
+    }
+    minBidAmount = Number(minBidAmountStr)
+  }
+
   return {
     supabaseUrl: required('NEXT_PUBLIC_SUPABASE_URL'),
     supabaseAnonKey: required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
@@ -33,7 +43,7 @@ export function getServerEnv(): ServerEnv {
     bankAccountNumber: required('BANK_ACCOUNT_NUMBER'),
     bankCode: required('BANK_CODE'),
     bankAccountName: required('BANK_ACCOUNT_NAME'),
-    minBidAmount: Number(process.env.MIN_BID_AMOUNT ?? 1000),
+    minBidAmount,
     siteUrl: required('NEXT_PUBLIC_SITE_URL'),
   }
 }

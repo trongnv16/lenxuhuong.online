@@ -48,4 +48,14 @@ describe('getServerEnv', () => {
     delete process.env.ADMIN_PASSWORD
     expect(() => getServerEnv()).toThrow(/ADMIN_PASSWORD/)
   })
+
+  it('ném lỗi khi MIN_BID_AMOUNT là chuỗi rỗng', () => {
+    process.env.MIN_BID_AMOUNT = ''
+    expect(() => getServerEnv()).toThrow(/MIN_BID_AMOUNT/)
+  })
+
+  it('ném lỗi khi MIN_BID_AMOUNT không phải số', () => {
+    process.env.MIN_BID_AMOUNT = '1O00'
+    expect(() => getServerEnv()).toThrow(/MIN_BID_AMOUNT/)
+  })
 })
