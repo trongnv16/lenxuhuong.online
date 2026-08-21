@@ -29,12 +29,22 @@ const MAX_BIO = 200
 const AVATAR_URL_MAX = 10
 const AVATAR_URL_WINDOW_MS = 15 * 60 * 1000
 
+// Khi không xác định được IP thật (chạy sau một proxy không gắn header
+// chuẩn), mỗi request nhận một khoá ngẫu nhiên riêng thay vì dồn chung vào
+// "unknown" — nếu không, một script gửi đủ request rỗng sẽ tự khoá mọi
+// người dùng thật khỏi việc tải ảnh trong 15 phút.
+function extractClientIp(headerBag: Headers): string | null {
+  const forwardedFor = headerBag.get('x-forwarded-for')
+  if (forwardedFor) return forwardedFor.split(',')[0]!.trim()
+  return headerBag.get('x-real-ip')
+}
+
 export async function requestAvatarUploadUrl(): Promise<
   ActionResult<{ path: string; token: string }>
 > {
   // Action này không cần đăng nhập và cấp quyền ghi vào bucket `avatars` công
   // khai. Không có hạn mức thì bất kỳ ai cũng gọi vòng lặp để bơm đầy bucket.
-  const ip = (await headers()).get('x-forwarded-for') ?? 'unknown'
+  const ip = extractClientIp(await headers()) ?? `unverified:${randomUUID()}`
   if (
     !checkRateLimit(`avatar-upload:${ip}`, {
       max: AVATAR_URL_MAX,

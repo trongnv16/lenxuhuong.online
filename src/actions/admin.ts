@@ -1,6 +1,6 @@
 'use server'
 
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import { cookies, headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getServiceClient } from '@/lib/supabase/server'
@@ -13,8 +13,20 @@ import type { ActionResult } from '@/actions/bid'
 const LOGIN_MAX_ATTEMPTS = 5
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 
+// Khi không xác định được IP thật (chạy sau một proxy không gắn header
+// chuẩn), mỗi request nhận một khoá ngẫu nhiên riêng thay vì dồn chung vào
+// "unknown" — nếu không, ai đó gửi 5 request rỗng là tự khoá mọi người khỏi
+// luồng đăng nhập/tải ảnh trong 15 phút, kể cả admin thật.
+function extractClientIp(headerBag: Headers): string | null {
+  const forwardedFor = headerBag.get('x-forwarded-for')
+  if (forwardedFor) return forwardedFor.split(',')[0]!.trim()
+  return headerBag.get('x-real-ip')
+}
+
 async function clientKey(prefix: string): Promise<string> {
-  return `${prefix}:${(await headers()).get('x-forwarded-for') ?? 'unknown'}`
+  const ip = extractClientIp(await headers())
+  const identity = ip ?? `unverified:${randomUUID()}`
+  return `${prefix}:${identity}`
 }
 
 // timingSafeEqual ném lỗi khi hai buffer khác độ dài — mà độ dài chính là thứ
