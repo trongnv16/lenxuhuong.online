@@ -1,14 +1,30 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { createHash, timingSafeEqual } from 'node:crypto'
+import { cookies, headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getServiceClient } from '@/lib/supabase/server'
 import { getServerEnv } from '@/lib/env'
 import { ADMIN_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, signSession } from '@/lib/admin-session'
 import { isAdmin } from '@/lib/admin-guard'
-import { assertTransition } from '@/lib/bid-status'
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit'
 import type { ActionResult } from '@/actions/bid'
-import type { Bid } from '@/lib/types'
+
+const LOGIN_MAX_ATTEMPTS = 5
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
+
+async function clientKey(prefix: string): Promise<string> {
+  return `${prefix}:${(await headers()).get('x-forwarded-for') ?? 'unknown'}`
+}
+
+// timingSafeEqual ném lỗi khi hai buffer khác độ dài — mà độ dài chính là thứ
+// ta không muốn rò rỉ. Băm cả hai phía về đúng 32 byte trước khi so sánh, cùng
+// cách src/lib/admin-session.ts xử lý chữ ký phiên.
+function secretEquals(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a, 'utf8').digest()
+  const hb = createHash('sha256').update(b, 'utf8').digest()
+  return timingSafeEqual(ha, hb)
+}
 
 // Proxy không bảo vệ được Server Action một cách đáng tin (docs Next.js cảnh báo
 // action là POST tới chính route chứa nó). Mọi action admin phải tự kiểm tra.
@@ -20,9 +36,18 @@ export async function requireAdmin(): Promise<void> {
 
 export async function loginAdmin(password: string): Promise<ActionResult<null>> {
   const env = getServerEnv()
-  if (password !== env.adminPassword) {
+  const key = await clientKey('login')
+
+  // Đếm trước khi so mật khẩu: hết hạn mức thì không tốn một phép so nào nữa.
+  if (!checkRateLimit(key, { max: LOGIN_MAX_ATTEMPTS, windowMs: LOGIN_WINDOW_MS })) {
+    return { ok: false, error: 'Quá nhiều lần thử. Vui lòng thử lại sau.' }
+  }
+
+  if (!secretEquals(password, env.adminPassword)) {
     return { ok: false, error: 'Mật khẩu không đúng.' }
   }
+
+  resetRateLimit(key)
 
   const expiresAt = Date.now() + SESSION_MAX_AGE_SECONDS * 1000
   ;(await cookies()).set(ADMIN_COOKIE_NAME, signSession(expiresAt, env.adminSessionSecret), {
@@ -41,109 +66,34 @@ export async function approveBid(
   receivedAmount: number,
 ): Promise<ActionResult<null>> {
   await requireAdmin()
-  const supabase = getServiceClient()
 
-  const { data: bid } = await supabase
-    .from('bids')
-    .select('*')
-    .eq('id', bidId)
-    .maybeSingle<Bid>()
-
-  if (!bid) return { ok: false, error: 'Không tìm thấy lượt bid.' }
-
-  try {
-    assertTransition(bid.status, 'approved')
-  } catch {
-    return { ok: false, error: 'Lượt bid này đã được xử lý.' }
+  // Kiểm tra TRƯỚC khi chạm vào database. receivedAmount đến từ một ô
+  // <input type="number"> tự do: chuỗi rỗng thành 0, chữ cái thành NaN, và NaN
+  // đi qua PostgREST sẽ hoá null — lọt qua CHECK (received_amount > 0) vì cột
+  // đó nullable, rồi mới chết ở profiles.amount (NOT NULL).
+  if (!Number.isInteger(receivedAmount) || receivedAmount <= 0) {
+    return { ok: false, error: 'Số tiền thực nhận phải là số nguyên dương.' }
   }
 
-  // Điều kiện status chặn duyệt hai lần khi mở nhiều tab.
-  const { data: claimed } = await supabase
-    .from('bids')
-    .update({
-      status: 'approved',
-      received_amount: receivedAmount,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq('id', bidId)
-    .eq('status', 'awaiting_review')
-    .select('id')
+  // Toàn bộ phần duyệt nằm trong một hàm Postgres (0002_approve_bid.sql): khoá
+  // dòng bid, đổi trạng thái, upsert profile và gán profile_id trong cùng một
+  // giao dịch. Trước đây việc này là 5 lượt đi/về từ Node, và vì bid bị đổi
+  // sang 'approved' — trạng thái cuối, không có đường quay lại — trước khi ghi
+  // profile, một lượt ghi profile hỏng sẽ để lại bid cháy mà không có profile.
+  const { error } = await getServiceClient().rpc('approve_bid', {
+    p_bid_id: bidId,
+    p_received_amount: receivedAmount,
+  })
 
-  if (!claimed || claimed.length === 0) {
-    return { ok: false, error: 'Lượt bid này đã được xử lý.' }
-  }
-
-  const now = new Date().toISOString()
-  const { data: existing } = await supabase
-    .from('profiles')
-    .select('id, amount, first_ranked_at')
-    .eq('social_url', bid.social_url)
-    .maybeSingle<{ id: string; amount: number; first_ranked_at: string }>()
-
-  if (existing) {
-    // Thứ hạng chỉ tăng, không bao giờ giảm vì một lượt bid thấp hơn.
-    //
-    // Hai bid `awaiting_review` khác nhau cho cùng social_url có thể được duyệt
-    // gần như đồng thời (hai tab admin). Nếu đọc existing.amount rồi tính max ở
-    // JS và ghi lại bằng UPDATE riêng, sẽ có khoảng hở TOCTOU: cả hai lần duyệt
-    // có thể đọc cùng giá trị cũ trước khi bên nào ghi, khiến số tiền thấp hơn
-    // thắng — vi phạm bất biến "amount chỉ tăng". Dùng optimistic lock
-    // (`.eq('amount', currentAmount)`) để UPDATE chỉ thành công khi dòng chưa bị
-    // ai khác đổi kể từ lần đọc gần nhất; nếu thua, đọc lại và thử lại hoặc dừng
-    // nếu số hiện tại đã >= receivedAmount (một lượt duyệt khác đã thắng).
-    let currentAmount = existing.amount
-    for (let attempt = 0; attempt < 5; attempt++) {
-      if (currentAmount >= receivedAmount) break
-
-      const { data: updated } = await supabase
-        .from('profiles')
-        .update({
-          platform: bid.platform,
-          handle: bid.handle,
-          display_name: bid.display_name,
-          bio: bid.bio,
-          avatar_path: bid.avatar_path,
-          amount: receivedAmount,
-          ranked_at: now,
-        })
-        .eq('id', existing.id)
-        .eq('amount', currentAmount)
-        .select('id, amount')
-        .maybeSingle<{ id: string; amount: number }>()
-
-      if (updated) break
-
-      const { data: refreshed } = await supabase
-        .from('profiles')
-        .select('amount')
-        .eq('id', existing.id)
-        .maybeSingle<{ amount: number }>()
-
-      if (!refreshed) break
-      currentAmount = refreshed.amount
+  if (error) {
+    // Postgres gói RAISE EXCEPTION vào message của lỗi PostgREST.
+    if (error.message?.includes('bid_not_awaiting_review')) {
+      return { ok: false, error: 'Lượt bid này đã được xử lý.' }
     }
-
-    await supabase.from('bids').update({ profile_id: existing.id }).eq('id', bidId)
-  } else {
-    const { data: created } = await supabase
-      .from('profiles')
-      .insert({
-        social_url: bid.social_url,
-        platform: bid.platform,
-        handle: bid.handle,
-        display_name: bid.display_name,
-        bio: bid.bio,
-        avatar_path: bid.avatar_path,
-        amount: receivedAmount,
-        first_ranked_at: now,
-        ranked_at: now,
-      })
-      .select('id')
-      .maybeSingle<{ id: string }>()
-
-    if (created) {
-      await supabase.from('bids').update({ profile_id: created.id }).eq('id', bidId)
+    if (error.message?.includes('bid_not_found')) {
+      return { ok: false, error: 'Không tìm thấy lượt bid.' }
     }
+    return { ok: false, error: 'Không duyệt được lượt bid. Thử lại sau.' }
   }
 
   revalidatePath('/')
