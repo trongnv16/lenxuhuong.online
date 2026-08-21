@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import { headers } from 'next/headers'
 import { getServiceClient } from '@/lib/supabase/server'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 import { getServerEnv } from '@/lib/env'
 import { normalizeSocialUrl } from '@/lib/social'
 import { validateBidAmount } from '@/lib/money'
@@ -28,16 +28,6 @@ const MAX_BIO = 200
 // đặt bid, nhưng có thể đổi ảnh vài lần trước khi ưng.
 const AVATAR_URL_MAX = 10
 const AVATAR_URL_WINDOW_MS = 15 * 60 * 1000
-
-// Khi không xác định được IP thật (chạy sau một proxy không gắn header
-// chuẩn), mỗi request nhận một khoá ngẫu nhiên riêng thay vì dồn chung vào
-// "unknown" — nếu không, một script gửi đủ request rỗng sẽ tự khoá mọi
-// người dùng thật khỏi việc tải ảnh trong 15 phút.
-function extractClientIp(headerBag: Headers): string | null {
-  const forwardedFor = headerBag.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0]!.trim()
-  return headerBag.get('x-real-ip')
-}
 
 export async function requestAvatarUploadUrl(): Promise<
   ActionResult<{ path: string; token: string }>
@@ -161,12 +151,28 @@ export async function createBid(
   return { ok: false, error: 'Không sinh được mã tham chiếu. Thử lại sau.' }
 }
 
+// receiptPath tới từ client, không phải giá trị máy chủ tự sinh và giữ lại —
+// requestReceiptUploadUrl trả path về cho trình duyệt, trình duyệt gửi lại
+// nguyên si trong submitBid. Một client tuỳ ý có thể bỏ qua bước xin URL và
+// tự gọi submitBid với path bất kỳ trong bucket receipts (bid cả người khác,
+// đường dẫn dò mò). Ép path phải đúng dạng "<refCode>/<uuid>.jpg" của chính
+// bid này để chặn việc gán ảnh bill không thuộc về bid đang submit.
+const RECEIPT_PATH_PATTERN = /^[A-Za-z0-9_-]+\/[0-9a-f-]+\.jpg$/
+
+function isReceiptPathForBid(path: string, refCode: string): boolean {
+  return path.startsWith(`${refCode}/`) && RECEIPT_PATH_PATTERN.test(path)
+}
+
 export async function submitBid(
   refCode: string,
   receiptPath: string | null,
 ): Promise<ActionResult<null>> {
   const bid = await fetchBidByRefCode(refCode)
   if (!bid) return { ok: false, error: 'Không tìm thấy mã tham chiếu này.' }
+
+  if (receiptPath && !isReceiptPathForBid(receiptPath, refCode)) {
+    return { ok: false, error: 'Ảnh không hợp lệ.' }
+  }
 
   try {
     assertTransition(bid.status, 'awaiting_review')

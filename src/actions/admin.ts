@@ -7,7 +7,7 @@ import { getServiceClient } from '@/lib/supabase/server'
 import { getServerEnv } from '@/lib/env'
 import { ADMIN_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, signSession } from '@/lib/admin-session'
 import { isAdmin } from '@/lib/admin-guard'
-import { checkRateLimit, resetRateLimit } from '@/lib/rate-limit'
+import { checkRateLimit, resetRateLimit, extractClientIp } from '@/lib/rate-limit'
 import type { ActionResult } from '@/actions/bid'
 
 const LOGIN_MAX_ATTEMPTS = 5
@@ -17,12 +17,6 @@ const LOGIN_WINDOW_MS = 15 * 60 * 1000
 // chuẩn), mỗi request nhận một khoá ngẫu nhiên riêng thay vì dồn chung vào
 // "unknown" — nếu không, ai đó gửi 5 request rỗng là tự khoá mọi người khỏi
 // luồng đăng nhập/tải ảnh trong 15 phút, kể cả admin thật.
-function extractClientIp(headerBag: Headers): string | null {
-  const forwardedFor = headerBag.get('x-forwarded-for')
-  if (forwardedFor) return forwardedFor.split(',')[0]!.trim()
-  return headerBag.get('x-real-ip')
-}
-
 async function clientKey(prefix: string): Promise<string> {
   const ip = extractClientIp(await headers())
   const identity = ip ?? `unverified:${randomUUID()}`

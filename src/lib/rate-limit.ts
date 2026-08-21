@@ -57,3 +57,23 @@ function pruneExpired(now: number): void {
     if (bucket.resetAt <= now) buckets.delete(key)
   }
 }
+
+// x-forwarded-for do CLIENT gửi lên hoàn toàn có thể bị giả mạo — kẻ tấn công
+// tự đặt một giá trị khác mỗi request để mỗi lần thử lại rơi vào một "IP" mới,
+// né sạch rate limit. x-vercel-forwarded-for do edge của Vercel tự gắn, client
+// không ghi đè được, nên ưu tiên đọc nó trước. Nếu buộc phải rơi về
+// x-forwarded-for (không chạy trên Vercel), lấy phần tử NGOÀI CÙNG BÊN PHẢI —
+// đó là địa chỉ do proxy gần nhất (đáng tin) thêm vào; phần tử bên trái nhất
+// là thứ client tự khai, không đáng tin.
+export function extractClientIp(headerBag: Headers): string | null {
+  const vercelIp = headerBag.get('x-vercel-forwarded-for')
+  if (vercelIp) return vercelIp.trim()
+
+  const forwardedFor = headerBag.get('x-forwarded-for')
+  if (forwardedFor) {
+    const hops = forwardedFor.split(',').map((h) => h.trim())
+    return hops[hops.length - 1] || null
+  }
+
+  return headerBag.get('x-real-ip')
+}
