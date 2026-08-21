@@ -29,7 +29,8 @@ export function amountToBeat(
   sorted: Rankable[],
   step: number,
 ): number {
-  const occupant = sorted[targetRank - 1]
+  const effectiveRank = Math.min(targetRank, sorted.length + 1)
+  const occupant = sorted[effectiveRank - 1]
   if (!occupant) return step
   return occupant.amount + step
 }

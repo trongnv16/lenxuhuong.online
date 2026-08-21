@@ -97,6 +97,25 @@ describe('amountToBeat', () => {
     expect(amountToBeat(1, [], 1000)).toBe(1000)
     expect(amountToBeat(4, sorted, 1000)).toBe(1000)
   })
+
+  it('giữ nhất quán với predictRank khi targetRank vượt xa cuối bảng', () => {
+    const twoEntries = sortForLeaderboard([
+      p('a', 100000, '2026-01-01'),
+      p('b', 50000, '2026-01-01'),
+    ])
+    // Không có ai ở hạng 5 hay xa hơn — mức tối thiểu để vào bảng vẫn là step.
+    const amount = amountToBeat(5, twoEntries, 1000)
+    expect(amount).toBe(1000)
+    expect(predictRank(amount, twoEntries)).toBe(3)
+  })
+
+  it('targetRank ngay sau cuối bảng vẫn đúng như cũ', () => {
+    const twoEntries = sortForLeaderboard([
+      p('a', 100000, '2026-01-01'),
+      p('b', 50000, '2026-01-01'),
+    ])
+    expect(amountToBeat(3, twoEntries, 1000)).toBe(1000)
+  })
 })
 
 describe('paginate', () => {
