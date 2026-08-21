@@ -73,4 +73,27 @@ describe('normalizeSocialUrl', () => {
     expect(normalizeSocialUrl('   ')).toBeNull()
     expect(normalizeSocialUrl('không phải url')).toBeNull()
   })
+
+  it('giữ lại id trong URL profile.php của Facebook để tránh trùng khoá', () => {
+    const a = normalizeSocialUrl('https://www.facebook.com/profile.php?id=100012345678')
+    const b = normalizeSocialUrl('https://www.facebook.com/profile.php?id=999888777')
+    expect(a?.url).toBe('https://facebook.com/profile.php?id=100012345678')
+    expect(b?.url).toBe('https://facebook.com/profile.php?id=999888777')
+    expect(a?.url).not.toBe(b?.url)
+  })
+
+  it('bỏ các query khác ngoài id trên profile.php', () => {
+    const r = normalizeSocialUrl('https://facebook.com/profile.php?id=42&ref=share&utm_source=x')
+    expect(r?.url).toBe('https://facebook.com/profile.php?id=42')
+  })
+
+  it('profile.php không có id thì không giữ query string', () => {
+    const r = normalizeSocialUrl('https://facebook.com/profile.php')
+    expect(r?.url).toBe('https://facebook.com/profile.php')
+  })
+
+  it('vẫn bỏ toàn bộ query cho link Facebook thường không phải profile.php', () => {
+    const r = normalizeSocialUrl('https://facebook.com/mrbeo?ref=share')
+    expect(r?.url).toBe('https://facebook.com/mrbeo')
+  })
 })

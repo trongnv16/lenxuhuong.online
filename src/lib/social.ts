@@ -66,8 +66,13 @@ export function normalizeSocialUrl(input: string): NormalizedSocial | null {
   const pathname = parsed.pathname.replace(/\/+$/, '')
   const handle = platform === 'other' ? null : extractHandle(host, pathname)
 
+  // Giữ lại id param cho Facebook profile.php để tránh trùng khoá
+  const isFacebookProfilePhp = host === 'facebook.com' && pathname === '/profile.php'
+  const idParam = isFacebookProfilePhp ? parsed.searchParams.get('id') : null
+  const query = idParam ? `?id=${idParam}` : ''
+
   return {
-    url: `https://${host}${pathname}`,
+    url: `https://${host}${pathname}${query}`,
     platform,
     handle,
   }
