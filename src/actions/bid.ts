@@ -1,7 +1,9 @@
 'use server'
 
 import { randomUUID } from 'node:crypto'
+import { headers } from 'next/headers'
 import { getServiceClient } from '@/lib/supabase/server'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { getServerEnv } from '@/lib/env'
 import { normalizeSocialUrl } from '@/lib/social'
 import { validateBidAmount } from '@/lib/money'
@@ -22,9 +24,26 @@ export type ActionResult<T> =
 const MAX_NAME = 50
 const MAX_BIO = 200
 
+// Rộng tay hơn hạn mức đăng nhập: người dùng thật gọi đúng một lần cho mỗi lần
+// đặt bid, nhưng có thể đổi ảnh vài lần trước khi ưng.
+const AVATAR_URL_MAX = 10
+const AVATAR_URL_WINDOW_MS = 15 * 60 * 1000
+
 export async function requestAvatarUploadUrl(): Promise<
   ActionResult<{ path: string; token: string }>
 > {
+  // Action này không cần đăng nhập và cấp quyền ghi vào bucket `avatars` công
+  // khai. Không có hạn mức thì bất kỳ ai cũng gọi vòng lặp để bơm đầy bucket.
+  const ip = (await headers()).get('x-forwarded-for') ?? 'unknown'
+  if (
+    !checkRateLimit(`avatar-upload:${ip}`, {
+      max: AVATAR_URL_MAX,
+      windowMs: AVATAR_URL_WINDOW_MS,
+    })
+  ) {
+    return { ok: false, error: 'Bạn thử tải ảnh quá nhiều lần. Đợi một lát rồi thử lại.' }
+  }
+
   const path = `${randomUUID()}.jpg`
   const { data, error } = await getServiceClient()
     .storage.from('avatars')
@@ -51,6 +70,22 @@ export async function requestReceiptUploadUrl(
     return { ok: false, error: 'Không tạo được đường dẫn tải ảnh. Thử lại sau.' }
   }
   return { ok: true, data: { path, token: data.token } }
+}
+
+/**
+ * Mức tiền hiện tại của profile ứng với `socialUrl`, hoặc null nếu link đó chưa
+ * có trên bảng. Form gọi khi rời bước 1 để bước 2 biết trước ngưỡng phải vượt,
+ * thay vì để người dùng điền hết form rồi mới bị máy chủ chặn.
+ *
+ * An toàn để lộ ra công khai: `amount` của profile chưa bị ẩn vốn đã hiện trên
+ * bảng xếp hạng. Không trả về gì ngoài con số đó.
+ */
+export async function checkExistingAmount(socialUrl: string): Promise<number | null> {
+  const social = normalizeSocialUrl(socialUrl)
+  if (!social) return null
+
+  const existing = await fetchProfileBySocialUrl(social.url)
+  return existing?.amount ?? null
 }
 
 export type CreateBidInput = {

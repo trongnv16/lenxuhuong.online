@@ -7,7 +7,7 @@ import { PlatformIcon } from '@/components/platform-icon'
 import { normalizeSocialUrl } from '@/lib/social'
 import { validateBidAmount, formatVnd, BID_STEP } from '@/lib/money'
 import { predictRank, amountToBeat, type Rankable } from '@/lib/ranking'
-import { createBid, requestAvatarUploadUrl } from '@/actions/bid'
+import { createBid, requestAvatarUploadUrl, checkExistingAmount } from '@/actions/bid'
 import { compressImage, uploadToSignedUrl, MAX_FILE_BYTES } from './upload'
 
 export function BidForm({
@@ -31,10 +31,15 @@ export function BidForm({
   const [uploading, setUploading] = useState(false)
   const [amount, setAmount] = useState(String(Math.max(minAmount, BID_STEP)))
   const [error, setError] = useState('')
+  // Mức tiền profile này đang có (nếu link đã lên bảng). Tra khi rời bước 1 để
+  // bước 2 chặn ngay bid thấp hơn mức cũ, thay vì để máy chủ báo lỗi sau khi
+  // người dùng đã đi hết form.
+  const [currentProfileAmount, setCurrentProfileAmount] = useState<number | null>(null)
+  const [checkingProfile, setCheckingProfile] = useState(false)
 
   const social = normalizeSocialUrl(socialUrl)
   const amountNumber = Number(amount)
-  const amountError = validateBidAmount(amountNumber, { minAmount })
+  const amountError = validateBidAmount(amountNumber, { minAmount, currentProfileAmount })
   const predicted = amountError ? null : predictRank(amountNumber, rankable)
 
   async function handleFile(file: File) {
@@ -70,12 +75,24 @@ export function BidForm({
     }
   }
 
-  function goToStep2() {
+  async function goToStep2() {
     setError('')
     if (!social) return setError('Link mạng xã hội không hợp lệ.')
     if (!displayName.trim()) return setError('Nhập tên hiển thị.')
     if (!bio.trim()) return setError('Nhập vài câu giới thiệu.')
     if (!avatarPath) return setError('Tải lên ảnh đại diện.')
+
+    setCheckingProfile(true)
+    try {
+      setCurrentProfileAmount(await checkExistingAmount(social.url))
+    } catch {
+      // Tra cứu hỏng thì vẫn cho đi tiếp: máy chủ vẫn kiểm tra lại lúc createBid,
+      // nên cùng lắm là mất phần cảnh báo sớm chứ không lọt bid sai.
+      setCurrentProfileAmount(null)
+    } finally {
+      setCheckingProfile(false)
+    }
+
     setStep(2)
   }
 
@@ -99,9 +116,15 @@ export function BidForm({
     })
   }
 
+  // Bỏ luôn gợi ý nào không vượt được mức hiện tại của chính người này —
+  // validateBidAmount sẽ chặn nếu bấm vào, nên đừng bày ra một nút chỉ để báo lỗi.
   const quickPicks = [1, 2, 3]
     .map((rank) => ({ rank, value: amountToBeat(rank, rankable, BID_STEP) }))
-    .filter((p) => p.value >= minAmount)
+    .filter(
+      (p) =>
+        p.value >= minAmount &&
+        (currentProfileAmount == null || p.value > currentProfileAmount),
+    )
 
   return (
     <div className="flex flex-col gap-6">
@@ -208,10 +231,11 @@ export function BidForm({
 
           <button
             type="button"
-            onClick={goToStep2}
-            className="rounded-full bg-primary px-8 py-3 font-semibold text-white hover:bg-primary-strong"
+            disabled={checkingProfile}
+            onClick={() => void goToStep2()}
+            className="rounded-full bg-primary px-8 py-3 font-semibold text-white hover:bg-primary-strong disabled:opacity-50"
           >
-            Tiếp tục
+            {checkingProfile ? 'Đang kiểm tra...' : 'Tiếp tục'}
           </button>
         </div>
       )}
