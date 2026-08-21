@@ -82,19 +82,46 @@ export async function approveBid(
 
   if (existing) {
     // Thứ hạng chỉ tăng, không bao giờ giảm vì một lượt bid thấp hơn.
-    const nextAmount = Math.max(existing.amount, receivedAmount)
-    const patch: Record<string, unknown> = {
-      platform: bid.platform,
-      handle: bid.handle,
-      display_name: bid.display_name,
-      bio: bid.bio,
-      avatar_path: bid.avatar_path,
-      amount: nextAmount,
-    }
-    // Chỉ đổi ranked_at khi số tiền thực sự tăng, để không xáo trộn mốc thời gian.
-    if (nextAmount > existing.amount) patch.ranked_at = now
+    //
+    // Hai bid `awaiting_review` khác nhau cho cùng social_url có thể được duyệt
+    // gần như đồng thời (hai tab admin). Nếu đọc existing.amount rồi tính max ở
+    // JS và ghi lại bằng UPDATE riêng, sẽ có khoảng hở TOCTOU: cả hai lần duyệt
+    // có thể đọc cùng giá trị cũ trước khi bên nào ghi, khiến số tiền thấp hơn
+    // thắng — vi phạm bất biến "amount chỉ tăng". Dùng optimistic lock
+    // (`.eq('amount', currentAmount)`) để UPDATE chỉ thành công khi dòng chưa bị
+    // ai khác đổi kể từ lần đọc gần nhất; nếu thua, đọc lại và thử lại hoặc dừng
+    // nếu số hiện tại đã >= receivedAmount (một lượt duyệt khác đã thắng).
+    let currentAmount = existing.amount
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (currentAmount >= receivedAmount) break
 
-    await supabase.from('profiles').update(patch).eq('id', existing.id)
+      const { data: updated } = await supabase
+        .from('profiles')
+        .update({
+          platform: bid.platform,
+          handle: bid.handle,
+          display_name: bid.display_name,
+          bio: bid.bio,
+          avatar_path: bid.avatar_path,
+          amount: receivedAmount,
+          ranked_at: now,
+        })
+        .eq('id', existing.id)
+        .eq('amount', currentAmount)
+        .select('id, amount')
+        .maybeSingle<{ id: string; amount: number }>()
+
+      if (updated) break
+
+      const { data: refreshed } = await supabase
+        .from('profiles')
+        .select('amount')
+        .eq('id', existing.id)
+        .maybeSingle<{ amount: number }>()
+
+      if (!refreshed) break
+      currentAmount = refreshed.amount
+    }
 
     await supabase.from('bids').update({ profile_id: existing.id }).eq('id', bidId)
   } else {
