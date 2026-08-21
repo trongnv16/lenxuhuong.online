@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# lenxuhuong.online
 
-## Getting Started
+Bảng xếp hạng trả phí. Người dùng trả tiền qua VietQR để đưa profile mạng xã
+hội lên bảng; ai trả cao hơn thì đứng trên.
 
-First, run the development server:
+## Chạy tại máy
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # điền các giá trị, xem docs/supabase-setup.md
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Kiểm thử
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm test        # Vitest — logic thuần
+pnpm test:e2e    # Playwright — luồng đầu-cuối
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tài liệu
 
-## Learn More
+- Thiết kế hệ thống: `docs/superpowers/specs/2026-08-21-lenxuhuong-design.md`
+- Kế hoạch triển khai: `docs/superpowers/plans/2026-08-21-lenxuhuong.md`
+- Thiết lập Supabase: `docs/supabase-setup.md`
 
-To learn more about Next.js, take a look at the following resources:
+## Triển khai
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Đẩy lên Vercel, khai báo toàn bộ biến trong `.env.example` ở phần Environment
+Variables. Đặt `NEXT_PUBLIC_SITE_URL` bằng tên miền thật để nút trong tin nhắn
+Telegram trỏ đúng chỗ.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tác vụ dọn bid quá hạn chạy hằng ngày lúc 3 giờ sáng qua Vercel Cron.
 
-## Deploy on Vercel
+## Vận hành
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Luồng thanh toán hiện là duyệt thủ công. Mỗi lượt bid được xác nhận sẽ bắn
+thông báo Telegram; vào `/admin` để đối soát và duyệt.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Khi lưu lượng tăng, thay bằng dịch vụ đọc biến động số dư (SePay, Casso) — chỉ
+cần thêm một route webhook đối chiếu `ref_code`, không phải sửa mô hình dữ liệu.
