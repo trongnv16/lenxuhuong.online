@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { Leaderboard } from '@/components/leaderboard'
+import { HomeBidCta } from '@/components/home-bid-cta'
 import { fetchVisibleProfiles } from '@/lib/queries'
 import { sortForLeaderboard, amountToBeat } from '@/lib/ranking'
 import { formatVnd, BID_STEP } from '@/lib/money'
@@ -26,12 +26,7 @@ export default async function Page(props: PageProps<'/'>) {
       <section className="mt-10 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface-muted px-6 py-8 text-center">
         <p className="text-ink-muted">Để chiếm hạng 1 ngay bây giờ</p>
         <p className="text-4xl font-bold text-primary">{formatVnd(priceForTop)}</p>
-        <Link
-          href="/dat-bid"
-          className="rounded-full bg-primary px-8 py-3 font-semibold text-white transition hover:bg-primary-strong"
-        >
-          Lên xu hướng ngay
-        </Link>
+        <HomeBidCta />
         <p className="text-sm text-ink-muted">
           Trả ít hơn vẫn lên bảng, ở đúng vị trí mà số tiền đó chiếm được.
         </p>
