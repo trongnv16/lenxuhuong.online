@@ -11,11 +11,11 @@ const TABS: { status: BidStatus; label: string }[] = [
   { status: 'rejected', label: 'Từ chối' },
 ]
 
-export default async function Page(props: PageProps<'/admin'>) {
+export default async function Page(props: PageProps<'/admin401426'>) {
   // Proxy đã chặn, nhưng kiểm tra lại ở đây để không phụ thuộc vào matcher.
   // Trang dùng bản trả về boolean rồi tự chuyển hướng, thay vì để lỗi trần
   // hiện màn hình lỗi của Next.
-  if (!(await isAdmin())) redirect('/admin/dang-nhap')
+  if (!(await isAdmin())) redirect('/admin401426/dang-nhap')
 
   const searchParams = await props.searchParams
   const raw = searchParams.tab
@@ -46,7 +46,7 @@ export default async function Page(props: PageProps<'/admin'>) {
         {TABS.map((tab) => (
           <Link
             key={tab.status}
-            href={`/admin?tab=${tab.status}`}
+            href={`/admin401426?tab=${tab.status}`}
             className={`rounded-full border px-4 py-2 text-sm ${
               tab.status === status
                 ? 'border-primary bg-primary-soft font-medium text-primary'

@@ -13,6 +13,6 @@ export const metadata: Metadata = {
   },
 }
 
-export default function AdminLayout({ children }: LayoutProps<'/admin'>) {
+export default function AdminLayout({ children }: LayoutProps<'/admin401426'>) {
   return children
 }

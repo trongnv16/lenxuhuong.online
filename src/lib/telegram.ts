@@ -61,7 +61,7 @@ async function sendTelegramMessage(
           ...(options.withReviewButton && {
             reply_markup: {
               inline_keyboard: [
-                [{ text: 'Mở trang duyệt', url: `${env.siteUrl}/admin` }],
+                [{ text: 'Mở trang duyệt', url: `${env.siteUrl}/admin401426` }],
               ],
             },
           }),

@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       // Trang bid chứa mã tham chiếu và số tiền, trang admin là khu vực quản
       // trị — không thứ nào nên nằm trong chỉ mục tìm kiếm.
-      disallow: ['/admin', '/admin/', '/bid/', '/api/'],
+      disallow: ['/admin401426', '/admin401426/', '/bid/', '/api/'],
     },
     sitemap: absoluteUrl('/sitemap.xml'),
     host: absoluteUrl('/'),

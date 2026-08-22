@@ -103,7 +103,7 @@ export async function approveBid(
   }
 
   revalidatePath('/')
-  revalidatePath('/admin')
+  revalidatePath('/admin401426')
   return { ok: true, data: null }
 }
 
@@ -128,7 +128,7 @@ export async function rejectBid(
     return { ok: false, error: 'Lượt bid này đã được xử lý.' }
   }
 
-  revalidatePath('/admin')
+  revalidatePath('/admin401426')
   return { ok: true, data: null }
 }
 
@@ -146,6 +146,6 @@ export async function toggleProfileHidden(
   if (error) return { ok: false, error: 'Không cập nhật được profile.' }
 
   revalidatePath('/')
-  revalidatePath('/admin')
+  revalidatePath('/admin401426')
   return { ok: true, data: null }
 }

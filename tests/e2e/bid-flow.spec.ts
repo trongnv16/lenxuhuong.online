@@ -82,7 +82,7 @@ test('đặt bid trọn vẹn từ trang chủ tới trang mã QR', async ({ pag
 })
 
 test('trang admin chặn người chưa đăng nhập', async ({ page }) => {
-  await page.goto('/admin')
-  await expect(page).toHaveURL(/\/admin\/dang-nhap/)
+  await page.goto('/admin401426')
+  await expect(page).toHaveURL(/\/admin401426\/dang-nhap/)
   await expect(page.getByRole('heading', { name: 'Đăng nhập quản trị' })).toBeVisible()
 })

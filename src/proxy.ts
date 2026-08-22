@@ -9,13 +9,13 @@ export function proxy(request: NextRequest) {
   const secret = process.env.ADMIN_SESSION_SECRET
 
   if (!secret || !verifySession(token, secret)) {
-    return NextResponse.redirect(new URL('/admin/dang-nhap', request.url))
+    return NextResponse.redirect(new URL('/admin401426/dang-nhap', request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  // Chỉ chặn /admin, không chặn /admin/dang-nhap để tránh vòng lặp chuyển hướng.
-  matcher: ['/admin'],
+  // Chỉ chặn /admin401426, không chặn /admin401426/dang-nhap để tránh vòng lặp chuyển hướng.
+  matcher: ['/admin401426'],
 }

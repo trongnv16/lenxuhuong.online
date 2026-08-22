@@ -19,7 +19,7 @@ export default function Page() {
         setError(result.error)
         return
       }
-      router.push('/admin')
+      router.push('/admin401426')
     })
   }
 
