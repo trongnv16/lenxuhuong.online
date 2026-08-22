@@ -1,7 +1,7 @@
 export const BID_STEP = 100
 
 export type BidAmountError = {
-  code: 'not_integer' | 'below_min' | 'not_step' | 'not_higher_than_own'
+  code: 'not_integer' | 'below_min' | 'not_higher_than_own'
   message: string
 }
 
@@ -21,13 +21,6 @@ export function validateBidAmount(
     return {
       code: 'below_min',
       message: `Số tiền tối thiểu là ${formatVnd(opts.minAmount)}.`,
-    }
-  }
-
-  if (amount % BID_STEP !== 0) {
-    return {
-      code: 'not_step',
-      message: `Số tiền phải là bội số của ${formatVnd(BID_STEP)}.`,
     }
   }
 

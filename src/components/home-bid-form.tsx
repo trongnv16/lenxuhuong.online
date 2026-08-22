@@ -40,8 +40,7 @@ export function HomeBidForm({
 
   const social = normalizeSocialUrl(socialUrl)
   // Ô số tiền cho gõ tự do, không chặn theo BID_STEP lúc đang nhập — chỉ báo
-  // khi số quá thấp. Ràng buộc bội số của BID_STEP vẫn được validateBidAmount
-  // kiểm tra đầy đủ lúc submit.
+  // khi số quá thấp.
   const belowMin = amount < minAmount
   const predicted = belowMin ? null : predictRank(amount, rankable)
 

@@ -7,6 +7,7 @@ import { buildVietQrUrl } from '@/lib/vietqr'
 import { formatVnd } from '@/lib/money'
 import { getServerEnv } from '@/lib/env'
 import { SubmitPaymentPanel } from '@/components/bid-form/submit-payment-panel'
+import { BidStatusPoller } from '@/components/bid-form/bid-status-poller'
 
 export const metadata: Metadata = {
   title: 'Trạng thái lượt bid',
@@ -89,6 +90,7 @@ export default async function Page(props: PageProps<'/bid/[ref_code]'>) {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-10">
+      {bid.status === 'awaiting_review' && <BidStatusPoller />}
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-surface-muted p-8 text-center">
         {state.icon}
         <h1 className="text-2xl font-bold">{state.title}</h1>
