@@ -6,7 +6,7 @@ export const SITE_NAME = 'xuhuong.online'
 export const SITE_TAGLINE = 'Trả phí để lên xu hướng'
 
 export const SITE_DESCRIPTION =
-  'Bảng xếp hạng trả phí cho profile mạng xã hội. Trả tiền qua VietQR để đưa TikTok, Facebook, Instagram, Threads, X hay YouTube của bạn lên bảng — ai trả cao hơn thì đứng trên.'
+  'Bảng xếp hạng trả phí cho profile mạng xã hội. Trả phí để đưa TikTok, Facebook, Instagram, Threads, X hay YouTube của bạn lên đầu bảng xếp hạng của chúng tôi.'
 
 export const SITE_KEYWORDS = [
   'lên xu hướng',
