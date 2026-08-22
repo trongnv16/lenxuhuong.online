@@ -1,4 +1,4 @@
-export const BID_STEP = 1000
+export const BID_STEP = 100
 
 export type BidAmountError = {
   code: 'not_integer' | 'below_min' | 'not_step' | 'not_higher_than_own'

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Clock, Check, X } from 'lucide-react'
@@ -6,6 +7,10 @@ import { buildVietQrUrl } from '@/lib/vietqr'
 import { formatVnd } from '@/lib/money'
 import { getServerEnv } from '@/lib/env'
 import { SubmitPaymentPanel } from '@/components/bid-form/submit-payment-panel'
+
+export const metadata: Metadata = {
+  title: 'Trạng thái lượt bid',
+}
 
 export default async function Page(props: PageProps<'/bid/[ref_code]'>) {
   const { ref_code: refCode } = await props.params

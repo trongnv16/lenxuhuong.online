@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useLayoutEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
 import { PlatformIcon } from '@/components/platform-icon'
@@ -77,10 +77,40 @@ export function HomeBidForm({
     setAmount((prev) => Math.max(minAmount, prev + direction * BID_STEP))
   }
 
-  function handleAmountInput(raw: string) {
+  const amountInputRef = useRef<HTMLInputElement>(null)
+  // Giữ nguyên vị trí con trỏ khi gõ giữa số: value hiển thị được format lại
+  // với dấu chấm ngăn cách hàng nghìn sau mỗi lần gõ, nên nếu không tự khôi
+  // phục caret thì trình duyệt sẽ đẩy nó về cuối chuỗi — xóa nhầm ký tự cuối
+  // thay vì ký tự người dùng đang trỏ vào.
+  const pendingCaret = useRef<number | null>(null)
+
+  function handleAmountInput(raw: string, caretBefore: number) {
+    const digitsBeforeCaret = raw.slice(0, caretBefore).replace(/\D/g, '').length
     const digits = raw.replace(/\D/g, '')
-    setAmount(digits ? Math.min(Number(digits), Number.MAX_SAFE_INTEGER) : 0)
+    const next = digits ? Math.min(Number(digits), Number.MAX_SAFE_INTEGER) : 0
+
+    const formatted = next ? next.toLocaleString('vi-VN') : ''
+    let seen = 0
+    let caretAfter = formatted.length
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) seen++
+      if (seen === digitsBeforeCaret) {
+        caretAfter = i + 1
+        break
+      }
+    }
+    if (digitsBeforeCaret === 0) caretAfter = 0
+
+    pendingCaret.current = caretAfter
+    setAmount(next)
   }
+
+  useLayoutEffect(() => {
+    if (pendingCaret.current === null) return
+    const el = amountInputRef.current
+    if (el) el.setSelectionRange(pendingCaret.current, pendingCaret.current)
+    pendingCaret.current = null
+  }, [amount])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -139,10 +169,13 @@ export function HomeBidForm({
             <label>
               <span className="sr-only">Số tiền bid</span>
               <input
+                ref={amountInputRef}
                 type="text"
                 inputMode="numeric"
                 value={amount ? amount.toLocaleString('vi-VN') : ''}
-                onChange={(e) => handleAmountInput(e.target.value)}
+                onChange={(e) =>
+                  handleAmountInput(e.target.value, e.target.selectionStart ?? e.target.value.length)
+                }
                 style={{ width: `${Math.max(2, formatVnd(amount).length - 1)}ch` }}
                 className="bg-transparent text-right text-[1em] font-extrabold leading-none tracking-[-0.02em] text-primary outline-none"
               />
@@ -171,8 +204,7 @@ export function HomeBidForm({
           </button>
         </div>
         <p className="mt-1 max-w-[480px] text-balance text-center text-[13.5px] leading-relaxed text-ink-muted">
-          Bạn có thể nhập bất kỳ giá nào, nhưng để vượt một vị trí, cần nhập cao hơn tối thiểu{" "}
-          {formatVnd(BID_STEP)} so với vị trí đó.
+          Bạn có thể nhập bất kỳ giá nào, nhưng để vượt một vị trí, cần nhập cao hơn tối thiểu <b style={{color: "#fc8728", fontSize: "16px"}}> 1 vnđ</b> so với vị trí đó.
         </p>
         {predicted ? (
           <p className="text-[13.5px] font-medium text-primary">
@@ -302,10 +334,6 @@ export function HomeBidForm({
           </svg>
         </button>
       </div>
-
-      <p className="-mt-1.5 text-center text-[13px] text-ink-muted">
-        Đã có tên trong bảng? Nhập lại link hoặc @handle và bid cao hơn để quay lại hạng 1.
-      </p>
     </form>
   )
 }
