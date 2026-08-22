@@ -12,7 +12,7 @@ const REQUIRED = {
   BANK_ACCOUNT_NUMBER: '0123456789',
   BANK_CODE: 'ACB',
   BANK_ACCOUNT_NAME: 'NGUYEN VAN A',
-  NEXT_PUBLIC_SITE_URL: 'https://lenxuhuong.online',
+  NEXT_PUBLIC_SITE_URL: 'https://xuhuong.online',
 }
 
 let saved: NodeJS.ProcessEnv

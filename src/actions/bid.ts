@@ -9,7 +9,7 @@ import { normalizeSocialUrl } from '@/lib/social'
 import { validateBidAmount } from '@/lib/money'
 import { generateRefCode } from '@/lib/ref-code'
 import { assertTransition } from '@/lib/bid-status'
-import { sendBidNotification } from '@/lib/telegram'
+import { sendBidNotification, sendBidPendingNotification } from '@/lib/telegram'
 import { sortForLeaderboard, predictRank } from '@/lib/ranking'
 import {
   fetchVisibleProfiles,
@@ -110,12 +110,8 @@ export async function createBid(
   }
 
   const bio = input.bio.trim()
-  if (!bio || bio.length > MAX_BIO) {
-    return { ok: false, error: `Giới thiệu từ 1 đến ${MAX_BIO} ký tự.` }
-  }
-
-  if (!input.avatarPath) {
-    return { ok: false, error: 'Bạn cần tải lên ảnh đại diện.' }
+  if (bio.length > MAX_BIO) {
+    return { ok: false, error: `Giới thiệu tối đa ${MAX_BIO} ký tự.` }
   }
 
   const existing = await fetchProfileBySocialUrl(social.url)
@@ -141,7 +137,18 @@ export async function createBid(
       avatar_path: input.avatarPath,
     })
 
-    if (!error) return { ok: true, data: { refCode } }
+    if (!error) {
+      const sorted = sortForLeaderboard(await fetchVisibleProfiles())
+      await sendBidPendingNotification({
+        refCode,
+        amount: input.amount,
+        displayName,
+        platform: social.platform,
+        socialUrl: social.url,
+        predictedRank: predictRank(input.amount, sorted),
+      })
+      return { ok: true, data: { refCode } }
+    }
     // 23505 là mã lỗi trùng khoá duy nhất của Postgres.
     if (error.code !== '23505') {
       return { ok: false, error: 'Không tạo được lượt bid. Thử lại sau.' }

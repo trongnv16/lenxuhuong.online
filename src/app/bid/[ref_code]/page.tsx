@@ -67,8 +67,8 @@ export default async function Page(props: PageProps<'/bid/[ref_code]'>) {
   const state = {
     awaiting_review: {
       icon: <Clock className="h-6 w-6 text-primary" aria-hidden="true" />,
-      title: 'Đang chờ duyệt',
-      body: 'Chúng tôi đã nhận được xác nhận của bạn và sẽ đối soát trong thời gian sớm nhất.',
+      title: 'Đang xử lý',
+      body: 'Chúng tôi đã nhận được xác nhận của bạn. Vui lòng đợi trong khoảng 1 phút.',
     },
     approved: {
       icon: <Check className="h-6 w-6 text-success" aria-hidden="true" />,

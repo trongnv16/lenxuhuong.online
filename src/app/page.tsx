@@ -1,40 +1,54 @@
 import { Leaderboard } from '@/components/leaderboard'
-import { HomeBidCta } from '@/components/home-bid-cta'
+import { HomeBidForm } from '@/components/home-bid-form'
+import { AutoRefresh } from '@/components/auto-refresh'
 import { fetchVisibleProfiles } from '@/lib/queries'
 import { sortForLeaderboard, amountToBeat } from '@/lib/ranking'
-import { formatVnd, BID_STEP } from '@/lib/money'
+import { BID_STEP } from '@/lib/money'
 import { getServerEnv } from '@/lib/env'
 
 export default async function Page(props: PageProps<'/'>) {
   const searchParams = await props.searchParams
   const pageParam = searchParams.page
   const page = Number(Array.isArray(pageParam) ? pageParam[0] : (pageParam ?? 1))
+  const urlParam = searchParams.url
+  const initialUrl = Array.isArray(urlParam) ? (urlParam[0] ?? '') : (urlParam ?? '')
 
   const profiles = sortForLeaderboard(await fetchVisibleProfiles())
   const minAmount = getServerEnv().minBidAmount
   const priceForTop = Math.max(amountToBeat(1, profiles, BID_STEP), minAmount)
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-16">
-      <header className="flex flex-col items-center gap-3 text-center">
-        <h1 className="text-3xl font-bold sm:text-4xl">lên xu hướng</h1>
-        <p className="max-w-md text-ink-muted">
-          Trả tiền để lên bảng. Ai trả cao hơn, người đó đứng trên.
-        </p>
-      </header>
+    <main className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 px-4 py-8 sm:py-12">
+      <div className="flex items-center gap-2.5">
+        <img src="/social_icon/xuhuong.png" alt="" width={36} height={36} className="h-9 w-9" aria-hidden="true" />
+        <div className="text-[22px] font-bold tracking-[-0.01em]">
+          lên<span className="text-primary">xuhướng</span>
+          <span className="font-medium text-ink-muted">.online</span>
+        </div>
+      </div>
 
-      <section className="mt-10 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface-muted px-6 py-8 text-center">
-        <p className="text-ink-muted">Để chiếm hạng 1 ngay bây giờ</p>
-        <p className="text-4xl font-bold text-primary">{formatVnd(priceForTop)}</p>
-        <HomeBidCta />
-        <p className="text-sm text-ink-muted">
-          Trả ít hơn vẫn lên bảng, ở đúng vị trí mà số tiền đó chiếm được.
+      <div className="flex max-w-[600px] flex-col gap-3 text-center">
+        <p className="text-[clamp(18px,2.4vw,22px)] font-semibold leading-snug">
+          Giữ hạng 1 của bạn trên <span className="text-primary">xuhuong.online</span>
         </p>
-      </section>
+      </div>
 
-      <section className="mt-12">
-        <Leaderboard profiles={profiles} page={page} />
-      </section>
+      <AutoRefresh />
+
+      <HomeBidForm
+        minAmount={minAmount}
+        priceForTop={priceForTop}
+        initialUrl={initialUrl}
+        rankable={profiles}
+      />
+
+      <div className="mt-1.5 h-px w-full bg-line" />
+
+      <Leaderboard profiles={profiles} page={page} />
+
+      <p className="mt-5 text-center text-xs text-ink-muted">
+        © 2026 xuhuong.online - j4f
+      </p>
     </main>
   )
 }

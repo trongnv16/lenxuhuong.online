@@ -15,9 +15,10 @@ export type Profile = {
   platform: Platform
   handle: string | null
   display_name: string
-  bio: string
-  avatar_path: string
+  bio: string | null
+  avatar_path: string | null
   amount: number
+  click_count: number
   first_ranked_at: string
   ranked_at: string
   is_hidden: boolean
@@ -35,8 +36,8 @@ export type Bid = {
   platform: Platform
   handle: string | null
   display_name: string
-  bio: string
-  avatar_path: string
+  bio: string | null
+  avatar_path: string | null
   receipt_path: string | null
   reject_reason: string | null
   created_at: string

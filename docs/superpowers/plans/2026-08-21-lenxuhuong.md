@@ -1,4 +1,4 @@
-# lenxuhuong.online — Kế hoạch triển khai
+# xuhuong.online — Kế hoạch triển khai
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -192,7 +192,7 @@ const REQUIRED = {
   BANK_ACCOUNT_NUMBER: '0123456789',
   BANK_CODE: 'ACB',
   BANK_ACCOUNT_NAME: 'NGUYEN VAN A',
-  NEXT_PUBLIC_SITE_URL: 'https://lenxuhuong.online',
+  NEXT_PUBLIC_SITE_URL: 'https://xuhuong.online',
 }
 
 let saved: NodeJS.ProcessEnv
@@ -1182,7 +1182,7 @@ describe('sendBidNotification', () => {
     vi.stubEnv('BANK_ACCOUNT_NUMBER', '0123456789')
     vi.stubEnv('BANK_CODE', 'ACB')
     vi.stubEnv('BANK_ACCOUNT_NAME', 'NGUYEN VAN A')
-    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://lenxuhuong.online')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://xuhuong.online')
   }
 
   it('trả true khi Telegram trả về thành công', async () => {
@@ -1316,7 +1316,7 @@ function stubEnv() {
   vi.stubEnv('BANK_ACCOUNT_NUMBER', '0123456789')
   vi.stubEnv('BANK_CODE', 'ACB')
   vi.stubEnv('BANK_ACCOUNT_NAME', 'NGUYEN VAN A')
-  vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://lenxuhuong.online')
+  vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://xuhuong.online')
 }
 
 describe('buildVietQrUrl', () => {
@@ -3841,7 +3841,7 @@ export async function GET(request: NextRequest) {
 - [ ] **Step 4: Thay `README.md`**
 
 ```markdown
-# lenxuhuong.online
+# xuhuong.online
 
 Bảng xếp hạng trả phí. Người dùng trả tiền qua VietQR để đưa profile mạng xã
 hội lên bảng; ai trả cao hơn thì đứng trên.

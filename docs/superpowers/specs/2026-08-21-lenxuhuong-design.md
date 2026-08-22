@@ -1,4 +1,4 @@
-# lenxuhuong.online — Thiết kế hệ thống
+# xuhuong.online — Thiết kế hệ thống
 
 Ngày: 2026-08-21
 

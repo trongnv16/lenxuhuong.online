@@ -79,8 +79,6 @@ export function BidForm({
     setError('')
     if (!social) return setError('Link mạng xã hội không hợp lệ.')
     if (!displayName.trim()) return setError('Nhập tên hiển thị.')
-    if (!bio.trim()) return setError('Nhập vài câu giới thiệu.')
-    if (!avatarPath) return setError('Tải lên ảnh đại diện.')
 
     setCheckingProfile(true)
     try {

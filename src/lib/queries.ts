@@ -60,7 +60,8 @@ export async function fetchBidsByStatus(status: BidStatus): Promise<Bid[]> {
   return (data ?? []) as Bid[]
 }
 
-export function avatarPublicUrl(path: string): string {
+export function avatarPublicUrl(path: string | null): string | null {
+  if (!path) return null
   const env = getServerEnv()
   return `${env.supabaseUrl}/storage/v1/object/public/avatars/${path}`
 }

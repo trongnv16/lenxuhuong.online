@@ -16,6 +16,19 @@ export function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+export function buildBidPendingNotification(input: BidNotificationInput): string {
+  return [
+    '<b>Có người sắp chuyển khoản</b>',
+    '',
+    `Mã: <code>${escapeHtml(input.refCode)}</code>`,
+    `Số tiền: <b>${formatVnd(input.amount)}</b>`,
+    `Tên: ${escapeHtml(input.displayName)}`,
+    `Nền tảng: ${escapeHtml(input.platform)}`,
+    `Link: ${escapeHtml(input.socialUrl)}`,
+    `Vị trí dự kiến: hạng ${input.predictedRank}`,
+  ].join('\n')
+}
+
 export function buildBidNotification(input: BidNotificationInput): string {
   return [
     '<b>Bid mới chờ duyệt</b>',
@@ -29,8 +42,9 @@ export function buildBidNotification(input: BidNotificationInput): string {
   ].join('\n')
 }
 
-export async function sendBidNotification(
-  input: BidNotificationInput,
+async function sendTelegramMessage(
+  text: string,
+  options: { withReviewButton: boolean },
 ): Promise<boolean> {
   try {
     const env = getServerEnv()
@@ -41,21 +55,39 @@ export async function sendBidNotification(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: env.telegramChatId,
-          text: buildBidNotification(input),
+          text,
           parse_mode: 'HTML',
           disable_web_page_preview: true,
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: 'Mở trang duyệt', url: `${env.siteUrl}/admin` }],
-            ],
-          },
+          ...(options.withReviewButton && {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: 'Mở trang duyệt', url: `${env.siteUrl}/admin` }],
+              ],
+            },
+          }),
         }),
       },
     )
     return res.ok
   } catch (error) {
-    // Telegram hỏng không được làm hỏng bid — người dùng đã chuyển tiền rồi.
+    // Telegram hỏng không được làm hỏng bid — người dùng đang trong luồng thao tác.
     console.error('Gửi thông báo Telegram thất bại:', error)
     return false
   }
+}
+
+// Bắn ngay khi bid được tạo, tức lúc người dùng chuẩn bị chuyển khoản — chưa
+// có gì để duyệt nên không kèm nút "Mở trang duyệt".
+export async function sendBidPendingNotification(
+  input: BidNotificationInput,
+): Promise<boolean> {
+  return sendTelegramMessage(buildBidPendingNotification(input), {
+    withReviewButton: false,
+  })
+}
+
+export async function sendBidNotification(
+  input: BidNotificationInput,
+): Promise<boolean> {
+  return sendTelegramMessage(buildBidNotification(input), { withReviewButton: true })
 }

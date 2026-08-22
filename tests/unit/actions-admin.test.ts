@@ -57,7 +57,7 @@ beforeEach(() => {
   process.env.BANK_ACCOUNT_NUMBER = '0123456789'
   process.env.BANK_CODE = 'ACB'
   process.env.BANK_ACCOUNT_NAME = 'NGUYEN VAN A'
-  process.env.NEXT_PUBLIC_SITE_URL = 'https://lenxuhuong.online'
+  process.env.NEXT_PUBLIC_SITE_URL = 'https://xuhuong.online'
 })
 
 const BID_ID = '11111111-1111-1111-1111-111111111111'

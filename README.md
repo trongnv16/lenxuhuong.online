@@ -1,4 +1,4 @@
-# lenxuhuong.online
+# xuhuong.online
 
 Bảng xếp hạng trả phí. Người dùng trả tiền qua VietQR để đưa profile mạng xã
 hội lên bảng; ai trả cao hơn thì đứng trên.

@@ -47,46 +47,29 @@ test.afterAll(async () => {
 
 test('trang chủ hiển thị bảng xếp hạng và giá chiếm hạng 1', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'lên xu hướng' })).toBeVisible()
-  await expect(page.getByText('Để chiếm hạng 1 ngay bây giờ')).toBeVisible()
-  // Khối hành động giờ là form có ô nhập link, không còn là Link tĩnh.
-  await expect(page.getByRole('button', { name: 'Lên xu hướng ngay' })).toBeVisible()
+  await expect(page.getByText('lênxuhướng.online')).toBeVisible()
+  await expect(page.getByText('Giành hạng 1 chỉ với')).toBeVisible()
+  // Form đặt bid giờ nằm ngay trang chủ, gộp ảnh + link + bio + số tiền.
+  await expect(page.getByRole('button', { name: 'Lên Top' })).toBeVisible()
   await expect(
-    page.getByPlaceholder('Dán link TikTok, Facebook, Instagram...'),
+    page.getByPlaceholder('Link TikTok, Facebook, Instagram, Threads hoặc X'),
   ).toBeVisible()
 })
 
-test('ô nhập link ở trang chủ chuyển sang /dat-bid với url điền sẵn', async ({ page }) => {
-  const url = 'https://tiktok.com/@aidohomepage'
-
-  await page.goto('/')
-  await page.getByPlaceholder('Dán link TikTok, Facebook, Instagram...').fill(url)
-  await page.getByRole('button', { name: 'Lên xu hướng ngay' }).click()
-
-  await expect(page).toHaveURL(`/dat-bid?url=${encodeURIComponent(url)}`)
-  await expect(page.getByRole('textbox').first()).toHaveValue(url)
-})
-
-test('đặt bid trọn vẹn tới trang mã QR', async ({ page }) => {
+test('đặt bid trọn vẹn từ trang chủ tới trang mã QR', async ({ page }) => {
   const uniqueHandle = `e2etest-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const socialUrl = `https://tiktok.com/@${uniqueHandle}`
 
-  await page.goto('/dat-bid')
+  await page.goto('/')
 
-  await page.getByLabel('Link mạng xã hội').fill(socialUrl)
-  await expect(page.getByText(`Đã nhận diện: ${socialUrl}`)).toBeVisible()
-
-  await page.getByLabel('Tên hiển thị').fill('Người Thử Nghiệm')
-  await page.getByLabel('Giới thiệu').fill('Đây là profile kiểm thử tự động.')
+  await page
+    .getByPlaceholder('Link TikTok, Facebook, Instagram, Threads hoặc X')
+    .fill(socialUrl)
+  await page.getByPlaceholder('Vài câu giới thiệu về bạn...').fill('Đây là profile kiểm thử tự động.')
   await page.setInputFiles('input[type="file"]', 'tests/e2e/fixtures/avatar.png')
-  await expect(page.getByText('Đã tải ảnh lên')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByAltText('Xem trước ảnh đại diện')).toBeVisible({ timeout: 15_000 })
 
-  await page.getByRole('button', { name: 'Tiếp tục' }).click()
-
-  await page.getByLabel('Số tiền (đồng)').fill('7000')
-  await expect(page.getByText(/bạn sẽ ở hạng \d+/)).toBeVisible()
-
-  await page.getByRole('button', { name: 'Tới bước thanh toán' }).click()
+  await page.getByRole('button', { name: 'Lên Top' }).click()
 
   await expect(page).toHaveURL(/\/bid\/LXH[A-Z2-9]{6}/)
 

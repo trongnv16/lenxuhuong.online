@@ -16,7 +16,7 @@ function stubEnv() {
   vi.stubEnv('BANK_ACCOUNT_NUMBER', '0123456789')
   vi.stubEnv('BANK_CODE', 'ACB')
   vi.stubEnv('BANK_ACCOUNT_NAME', 'NGUYEN VAN A')
-  vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://lenxuhuong.online')
+  vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://xuhuong.online')
 }
 
 describe('buildVietQrUrl', () => {
