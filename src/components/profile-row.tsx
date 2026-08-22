@@ -29,7 +29,7 @@ export function ProfileRow({ profile, rank }: { profile: Profile; rank: number }
     <ClickTrackingLink
       href={profile.social_url}
       profileId={profile.id}
-      className={`relative flex items-start gap-3.5 rounded-[18px] px-[18px] py-4 transition hover:shadow-sm sm:items-center ${
+      className={`relative flex items-start gap-3.5 rounded-[18px] px-3 py-4 transition hover:shadow-sm sm:items-center sm:px-[18px] ${
         tier ? 'border-2' : 'border'
       }`}
       style={{
@@ -60,7 +60,7 @@ export function ProfileRow({ profile, rank }: { profile: Profile; rank: number }
               platform={profile.platform}
               className="shrink-0 text-ink-muted"
             />
-            <span className="truncate font-bold">{profile.display_name}</span>
+            <span className="truncate text-[14px] font-bold sm:text-base">{profile.display_name}</span>
             {rank === 1 && (
               <span
                 className="hidden shrink-0 rounded-full bg-surface px-[9px] py-0.5 text-[10.5px] font-bold text-primary-strong sm:inline-flex"
